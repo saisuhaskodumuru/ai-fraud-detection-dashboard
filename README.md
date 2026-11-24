@@ -1,9 +1,10 @@
 # AI-Powered Fraud Detection Dashboard
 
 A real working demo that scores payment transactions for fraud in real time.
-It is a demo rebuild of the fraud detection work Sai Suhas Kodumuru did at
-Verizon. It is not Verizon production code, and it contains no real customer
-data. Every transaction in it is synthetic.
+It is a personal project built by Sai Suhas Kodumuru to demonstrate
+real-time fraud scoring with Spring Boot microservices and Azure ML.
+It is not associated with any work experience, and it contains no real
+customer data. Every transaction in it is synthetic.
 
 ## What it does
 
@@ -141,10 +142,10 @@ scorer and the response says `"model": "local-rules-v1"`. The API key is
 sent only as an Authorization header to the configured endpoint and is
 never logged.
 
-In the Verizon work this pattern was the same: Spring Boot microservices
-called Azure ML models in real time and returned scores over REST, with
-monitoring for drift and slow calls. This demo keeps that shape, with a
-local scorer standing in for the model when no endpoint is present.
+This project follows a common production pattern: Spring Boot microservices
+call an ML model in real time and return scores over REST, with monitoring
+for drift and slow calls. This demo keeps that shape, with a local scorer
+standing in for the model when no endpoint is present.
 
 ## Tests
 

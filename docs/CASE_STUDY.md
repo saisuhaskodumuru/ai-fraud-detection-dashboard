@@ -2,10 +2,11 @@
 
 ## What this is
 
-This is a demo rebuild of fraud detection work I did at Verizon, built as a
-standalone portfolio project. It is not Verizon production code, and it
-contains no real customer data. Every transaction in it is synthetic. The
-goal was to show the same shape of system in a form anyone can run locally:
+This is a personal project built to demonstrate fraud detection, as a
+standalone portfolio project. It is not associated with any work
+experience, and it contains no real customer data. Every transaction in
+it is synthetic. The goal was to show the same shape of system in a form
+anyone can run locally:
 a Spring Boot service that scores payment transactions in real time, a
 rule-based scorer that runs when no ML endpoint is configured, an Azure ML
 client that can take over scoring when an endpoint is configured, and a
@@ -16,19 +17,16 @@ dashboard that makes the risk visible.
 Fraud teams need a score for every transaction within milliseconds of it
 arriving, with a reason they can read, not just a number. A black-box score
 does not help an analyst decide whether to block a payment, and a system
-that only works when the ML endpoint is up does not survive an outage. The
-Verizon work had the same constraints at production scale: high transaction
-volume, a fraud model served from Azure ML, and a requirement that scoring
-never block the payment flow.
+that only works when the ML endpoint is up does not survive an outage.
+Production fraud systems face the same constraints at scale: high
+transaction volume, a fraud model served from Azure ML, and a requirement
+that scoring never block the payment flow.
 
 ## My role
 
-At Verizon I worked on the fraud detection microservices that scored
-transactions and cut scoring latency by more than half through async
-processing and caching. That latency improvement is from the Verizon work,
-not from this demo. In this demo I rebuilt the pattern end to end: the
-scoring service, the rule engine, the Azure ML integration point, the
-in-memory store, the REST API, the dashboard UI, and the tests.
+I built this personal project end to end: the scoring service, the rule
+engine, the Azure ML integration point, the in-memory store, the REST
+API, the dashboard UI, and the tests.
 
 ## Architecture
 
@@ -119,9 +117,8 @@ application and curling the real endpoints. They describe the demo only.
 - Dashboard UI at `http://localhost:8080/`: HTTP 200 in 0.115 s,
   7,471 bytes of static HTML, CSS, and JavaScript.
 
-The latency improvement of more than half from the Verizon work is a
-production result from that project and is not a claim about this demo.
-No production metrics are claimed here.
+No production metrics are claimed here. All numbers above describe this
+demo only.
 
 ## Challenges
 
