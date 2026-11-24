@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Powered Fraud Detection Dashboard</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+  header { padding: 24px; background: #1e293b; }
+  header h1 { margin: 0 0 4px; font-size: 24px; }
+  header p { margin: 0; color: #94a3b8; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: #1e293b; border-radius: 10px; padding: 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 13px; color: #94a3b8; text-transform: uppercase; }
+  .card .big { font-size: 28px; font-weight: 700; }
+  section { background: #1e293b; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+  form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px; }
+  input, select { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; }
+  button { padding: 10px 16px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .LOW { background: #14532d; color: #bbf7d0; }
+  .MEDIUM { background: #713f12; color: #fde68a; }
+  .HIGH { background: #7c2d12; color: #fed7aa; }
+  .CRITICAL { background: #7f1d1d; color: #fecaca; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #334155; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .bar-row span:first-child { width: 90px; }
+  .bar { height: 16px; background: #334155; border-radius: 4px; flex: 1; overflow: hidden; }
+  .bar > div { height: 100%; background: #2563eb; }
+  #result { white-space: pre-wrap; background: #0f172a; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 13px; }
+  .muted { color: #94a3b8; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI-Powered Fraud Detection Dashboard</h1>
+  <p>Real-time transaction scoring with Spring Boot and Azure ML. All data is synthetic. Model: <span id="modelLabel">local-rules-v1</span> unless an Azure ML endpoint is configured.</p>
+</header>
+<main>
+  <div class="cards" id="statsCards"></div>
+
+  <section>
+    <h2>Risk-band breakdown</h2>
+    <div id="riskBars"></div>
+  </section>
+
+  <section>
+    <h2>Score a transaction</h2>
+    <form id="scoreForm">
+      <div><label>Transaction ID</label><input name="id" value="TXN-DEMO-1" required></div>
+      <div><label>Customer ID</label><input name="customerId" value="CUST-001" required></div>
+      <div><label>Amount</label><input name="amount" type="number" step="0.01" min="0.01" value="250.00" required></div>
+      <div><label>Currency</label><input name="currency" value="USD" required></div>
+      <div><label>Merchant</label><input name="merchant" value="Best Buy" required></div>
+      <div><label>Merchant category</label><input name="merchantCategory" value="ELECTRONICS" required></div>
+      <div><label>Country (2-letter)</label><input name="country" value="US" required></div>
+      <div><label>Device ID</label><input name="deviceId" value="DEV-1" required></div>
+      <div><label>Timestamp</label><input name="timestamp" type="datetime-local" id="tsInput" required></div>
+      <div style="align-self:end"><button type="submit">Score transaction</button></div>
+    </form>
+    <div id="result" hidden></div>
+  </section>
+
+  <section>
+    <h2>Transactions</h2>
+    <p class="muted">Filter:
+      <select id="riskFilter">
+        <option value="">All</option>
+        <option>LOW</option><option>MEDIUM</option><option>HIGH</option><option>CRITICAL</option>
+      </select>
+      <button id="refreshBtn" type="button">Refresh</button>
+    </p>
+    <table>
+      <thead><tr><th>ID</th><th>Customer</th><th>Amount</th><th>Merchant</th><th>Country</th><th>Score</th><th>Risk</th><th>Model</th></tr></thead>
+      <tbody id="txnBody"></tbody>
+    </table>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+document.getElementById('tsInput').value = new Date().toISOString().slice(0, 16);
+
+async function loadStats() {
+  const res = await fetch('/api/v1/dashboard/stats');
+  const s = await res.json();
+  $('statsCards').innerHTML =
+    '<div class="card"><h3>Total transactions</h3><div class="big">' + s.totalTransactions + '</div></div>' +
+    '<div class="card"><h3>Fraud (HIGH+)</h3><div class="big">' + s.fraudCount + '</div></div>' +
+    '<div class="card"><h3>Fraud rate</h3><div class="big">' + s.fraudRatePercent + '%</div></div>' +
+    '<div class="card"><h3>Average score</h3><div class="big">' + s.averageScore + '</div></div>';
+  const total = Math.max(1, s.totalTransactions);
+  $('riskBars').innerHTML = Object.entries(s.byRiskBand).map(([band, count]) =>
+    '<div class="bar-row"><span>' + band + ' (' + count + ')</span><div class="bar"><div style="width:' + Math.round(count / total * 100) + '%"></div></div></div>'
+  ).join('');
+  const top = (s.topRiskyMerchants || []).map(m => m.merchant + ' (' + m.fraudCount + ')').join(', ');
+  if (top) $('riskBars').innerHTML += '<p class="muted">Top risky merchants: ' + top + '</p>';
+}
+
+async function loadTxns() {
+  const risk = $('riskFilter').value;
+  const url = '/api/v1/transactions' + (risk ? '?risk=' + risk : '');
+  const res = await fetch(url);
+  const list = await res.json();
+  const rows = list.slice(-50).reverse();
+  $('txnBody').innerHTML = rows.map(t =>
+    '<tr><td>' + t.id + '</td><td>' + t.customerId + '</td><td>' + t.amount + ' ' + t.currency + '</td><td>' + t.merchant + '</td><td>' + t.country + '</td><td>' + t.score + '</td><td><span class="badge ' + t.riskBand + '">' + t.riskBand + '</span></td><td>' + t.model + '</td></tr>'
+  ).join('');
+  if (rows.length) $('modelLabel').textContent = rows[0].model;
+}
+
+$('scoreForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const body = {
+    id: f.get('id'), customerId: f.get('customerId'),
+    amount: parseFloat(f.get('amount')), currency: f.get('currency'),
+    merchant: f.get('merchant'), merchantCategory: f.get('merchantCategory'),
+    country: f.get('country'), deviceId: f.get('deviceId'),
+    timestamp: new Date(f.get('timestamp')).toISOString()
+  };
+  const res = await fetch('/api/v1/transactions/score', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  const box = $('result');
+  box.hidden = false;
+  box.textContent = res.ok
+    ? 'Score: ' + data.score + ' (' + data.riskBand + ', ' + data.classification + ')\nModel: ' + data.model + '\nRules: ' + (data.contributingRules || []).join(', ')
+    : 'Error ' + res.status + ': ' + JSON.stringify(data);
+  await loadStats(); await loadTxns();
+});
+$('riskFilter').addEventListener('change', loadTxns);
+$('refreshBtn').addEventListener('click', async () => { await loadStats(); await loadTxns(); });
+loadStats(); loadTxns();
+</script>
+</body>
+</html>
